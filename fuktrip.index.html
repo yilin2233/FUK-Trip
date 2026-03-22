@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>九州自駕旅 | 行程導覽</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+      background-color: #F8F9FA;
+      color: #4A4A4A;
+      /* 防止 iOS 底部導航遮擋 */
+      padding-bottom: 80px; 
+    }
+    .card-shadow {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bgPrimary: '#F8F9FA',
+            textPrimary: '#4A4A4A',
+            accentGold: '#D4AF37',
+            accentRed: '#E63946',
+            navBg: '#FFFFFF'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="antialiased">
+
+  <!-- Header -->
+  <header class="fixed top-0 w-full bg-white shadow-sm z-30 px-4 py-3 flex justify-between items-center">
+    <h1 class="text-xl font-bold tracking-wider text-textPrimary">九州自駕旅 🚗</h1>
+    <div class="text-sm text-gray-500" id="current-date-display"></div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="pt-16 px-4 max-w-lg mx-auto w-full">
+    
+    <!-- Tab 1: 行程頁面 -->
+    <div id="view-itinerary" class="view-section block">
+      <div id="itinerary-container" class="space-y-6 mt-4">
+        <!-- JS 動態生成行程 -->
+      </div>
+    </div>
+
+    <!-- Tab 2: 工具箱頁面 -->
+    <div id="view-toolbox" class="view-section hidden mt-4">
+      <h2 class="text-xl font-bold mb-4 border-b pb-2">急難救助聯絡</h2>
+      <div class="bg-white p-4 rounded-xl card-shadow mb-6 space-y-3">
+        <div class="flex justify-between items-center">
+          <span><i class="fa-solid fa-phone text-accentRed w-6"></i> 報警</span>
+          <a href="tel:110" class="text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded">110</a>
+        </div>
+        <div class="flex justify-between items-center">
+          <span><i class="fa-solid fa-truck-medical text-accentRed w-6"></i> 救護車/火警</span>
+          <a href="tel:119" class="text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded">119</a>
+        </div>
+        <div class="flex justify-between items-center">
+          <span><i class="fa-solid fa-building text-blue-500 w-6"></i> 台北駐福岡經濟文化辦事處</span>
+          <a href="tel:090-1922-9740" class="text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded">急難專線</a>
+        </div>
+      </div>
+
+      <h2 class="text-xl font-bold mb-4 border-b pb-2 flex justify-between">
+        <span>記帳預算表</span>
+        <span id="total-expense" class="text-accentRed">¥0</span>
+      </h2>
+      <div class="bg-white p-4 rounded-xl card-shadow mb-6">
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="expense-item" placeholder="項目 (例: 晚餐)" class="border p-2 rounded w-1/2 text-sm focus:outline-none focus:ring-1 focus:ring-accentGold">
+          <input type="number" id="expense-amount" placeholder="金額 (¥)" class="border p-2 rounded w-1/2 text-sm focus:outline-none focus:ring-1 focus:ring-accentGold">
+          <button onclick="addExpense()" class="bg-textPrimary text-white px-3 rounded shadow"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <ul id="expense-list" class="space-y-2 text-sm">
+          <!-- JS 動態生成記帳 -->
+        </ul>
+      </div>
+
+      <!-- 開發者工具 -->
+      <div class="text-center mt-10 mb-4">
+        <button onclick="resetData()" class="text-xs text-gray-400 underline">開發者：重設所有資料 (讀取最新 JSON)</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 浮動新增按鈕 (僅在行程頁顯示) -->
+  <button id="fab-add" onclick="openAddModal()" class="fixed bottom-24 right-4 bg-textPrimary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl z-40 hover:bg-black transition">
+    <i class="fa-solid fa-plus"></i>
+  </button>
+
+  <!-- Bottom Navigation -->
+  <nav class="fixed bottom-0 w-full bg-navBg border-t border-gray-200 flex justify-around pb-safe z-30">
+    <button onclick="switchTab('itinerary')" id="nav-itinerary" class="nav-btn flex flex-col items-center py-3 w-1/3 text-textPrimary">
+      <i class="fa-solid fa-calendar-days text-xl mb-1"></i>
+      <span class="text-xs font-bold">行程</span>
+    </button>
+    <button onclick="openMapApp()" class="nav-btn flex flex-col items-center py-3 w-1/3 text-gray-400">
+      <i class="fa-solid fa-map-location-dot text-xl mb-1"></i>
+      <span class="text-xs">地圖</span>
+    </button>
+    <button onclick="switchTab('toolbox')" id="nav-toolbox" class="nav-btn flex flex-col items-center py-3 w-1/3 text-gray-400">
+      <i class="fa-solid fa-toolbox text-xl mb-1"></i>
+      <span class="text-xs">工具箱</span>
+    </button>
+  </nav>
+
+  <!-- Modal: 編輯行程 -->
+  <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center px-4">
+    <div class="bg-white rounded-xl w-full max-w-sm p-5 card-shadow relative">
+      <h3 class="font-bold text-lg mb-4 text-textPrimary" id="edit-modal-title">編輯項目</h3>
+      <input type="hidden" id="edit-day-idx">
+      <input type="hidden" id="edit-item-idx">
+      
+      <label class="block text-xs text-gray-500 mb-1">時間安排</label>
+      <input type="time" id="edit-time" class="w-full border p-2 rounded mb-3 focus:outline-none">
+      
+      <label class="block text-xs text-gray-500 mb-1">個人備註 / 交通方式</label>
+      <textarea id="edit-notes" rows="3" class="w-full border p-2 rounded mb-4 focus:outline-none text-sm" placeholder="輸入備註..."></textarea>
+      
+      <div class="flex justify-end gap-3">
+        <button onclick="closeModals()" class="px-4 py-2 text-sm text-gray-500 border rounded">取消</button>
+        <button onclick="saveEdit()" class="px-4 py-2 text-sm bg-textPrimary text-white rounded shadow">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 新增行程 -->
+  <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center px-4">
+    <div class="bg-white rounded-xl w-full max-w-sm p-5 card-shadow relative">
+      <h3 class="font-bold text-lg mb-4 text-textPrimary">新增行程景點</h3>
+      
+      <label class="block text-xs text-gray-500 mb-1">選擇天數</label>
+      <select id="add-day" class="w-full border p-2 rounded mb-3 focus:outline-none text-sm"></select>
+      
+      <label class="block text-xs text-gray-500 mb-1">分類</label>
+      <select id="add-type" class="w-full border p-2 rounded mb-3 focus:outline-none text-sm">
+        <option value="events">景點</option>
+        <option value="food">餐廳/美食</option>
+        <option value="transport">交通</option>
+      </select>
+
+      <label class="block text-xs text-gray-500 mb-1">名稱</label>
+      <input type="text" id="add-name" class="w-full border p-2 rounded mb-4 focus:outline-none text-sm" placeholder="例: 熊本熊部長辦公室">
+      
+      <div class="flex justify-end gap-3">
+        <button onclick="closeModals()" class="px-4 py-2 text-sm text-gray-500 border rounded">取消</button>
+        <button onclick="saveNewItem()" class="px-4 py-2 text-sm bg-textPrimary text-white rounded shadow">新增</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================
+       1. 初始行程資料 (JSON格式)
+       說明：如果您想更改預設行程，請修改下方的 rawItineraryData。
+       修改後，請在網頁「工具箱」最下方點擊「開發者：重設所有資料」以載入新設定。
+       ========================================== */
+    const rawItineraryData =[
+      { "day": 1, "location": "熊本", "events": ["台中✈️熊本 18:15抵達"] },
+      { "day": 2, "location": "阿蘇", "events":["上色見熊野座神社", "阿蘇火山", "草千里", "別府地獄"] },
+      { "day": 3, "location": "別府/由布院", "events":["九州自然動物園", "金鱗湖", "湯之坪街道"], "food":["豐後牛", "金賞可樂餅", "鞠智銅鑼燒", "吉吾炸雞"] },
+      { "day": 4, "location": "北九州/門司港", "events":["門司港藍翼橋", "海峽廣場", "九州鐵道紀念館", "唐戶市場", "皿倉山百億夜景"], "transport":["新幹線博多-小倉", "免費接駁車-皿倉山"] },
+      { "day": 5, "location": "福岡", "events":["櫛田神社", "博多運河城", "屋台"], "food": ["藥院燒肉"] },
+      { "day": 6, "location": "太宰府/天神", "events":["太宰府天滿宮", "天神地下街"], "food":["太宰府限定一蘭", "梅枝餅", "兼虎拉麵", "西新初喜壽喜燒"], "cafe": ["FUK coffee", "Blue Bottle"] },
+      { "day": 7, "location": "熊本", "events":["熊本城", "櫻花馬場城彩苑", "下通商店街"], "food": ["勝烈亭豬排"] }
+    ];
+
+    /* ==========================================
+       2. 資料處理與 LocalStorage 邏輯
+       ========================================== */
+    let appData = [];
+    let expenses =[];
+
+    // 初始化應用程式
+    function initApp() {
+      // 讀取日期
+      const today = new Date();
+      document.getElementById('current-date-display').innerText = `${today.getMonth()+1}/${today.getDate()} ${['日','一','二','三','四','五','六'][today.getDay()]} `;
+
+      // 載入行程資料
+      const savedData = localStorage.getItem('kyushu_itinerary_v1');
+      if (savedData) {
+        appData = JSON.parse(savedData);
+      } else {
+        // 標準化資料格式，方便後續編輯
+        appData = rawItineraryData.map(d => {
+          let items =[];
+          if (d.events) items = items.concat(d.events.map(e => ({ name: e, type: 'events', time: '', notes: '' })));
+          if (d.food) items = items.concat(d.food.map(e => ({ name: e, type: 'food', time: '', notes: '' })));
+          if (d.cafe) items = items.concat(d.cafe.map(e => ({ name: e, type: 'cafe', time: '', notes: '' })));
+          if (d.transport) items = items.concat(d.transport.map(e => ({ name: e, type: 'transport', time: '', notes: '' })));
+          return { day: d.day, location: d.location, items: items };
+        });
+        saveData();
+      }
+
+      // 載入記帳資料
+      const savedExpenses = localStorage.getItem('kyushu_expenses_v1');
+      if (savedExpenses) {
+        expenses = JSON.parse(savedExpenses);
+      }
+      
+      renderItinerary();
+      renderExpenses();
+      populateAddDaySelect();
+    }
+
+    function saveData() {
+      localStorage.setItem('kyushu_itinerary_v1', JSON.stringify(appData));
+    }
+
+    function saveExpenses() {
+      localStorage.setItem('kyushu_expenses_v1', JSON.stringify(expenses));
+    }
+
+    // 重設資料 (開發者用)
+    function resetData() {
+      if(confirm('確定要清除所有編輯紀錄、記帳與新增景點，還原為初始設定嗎？')) {
+        localStorage.removeItem('kyushu_itinerary_v1');
+        localStorage.removeItem('kyushu_expenses_v1');
+        location.reload();
+      }
+    }
+
+    /* ==========================================
+       3. 智能分析與渲染 UI
+       ========================================== */
+    
+    // 智能分析關鍵字，給予標籤
+    function smartAnalysis(text) {
+      let tags =[];
+      const goldKeywords = /牛|可樂餅|銅鑼燒|炸雞|燒肉|拉麵|壽喜燒|屋台|豬排|梅枝餅|必吃|一蘭/;
+      const redKeywords = /市場|地下街|運河城|商圈|伴手禮|必買/;
+      
+      if (goldKeywords.test(text)) {
+        tags.push(`<span class="bg-accentGold text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm ml-2 font-bold tracking-wide">必吃美食</span>`);
+      }
+      if (redKeywords.test(text)) {
+        tags.push(`<span class="bg-accentRed text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm ml-2 font-bold tracking-wide">血拼逛街</span>`);
+      }
+      return tags.join('');
+    }
+
+    // 取得類別圖示與顏色
+    function getTypeStyle(type) {
+      switch(type) {
+        case 'food': return { icon: 'fa-utensils', color: 'text-orange-500', bg: 'bg-orange-50' };
+        case 'cafe': return { icon: 'fa-mug-hot', color: 'text-amber-600', bg: 'bg-amber-50' };
+        case 'transport': return { icon: 'fa-train-subway', color: 'text-blue-500', bg: 'bg-blue-50' };
+        default: return { icon: 'fa-location-dot', color: 'text-teal-500', bg: 'bg-teal-50' };
+      }
+    }
+
+    // 渲染行程列表
+    function renderItinerary() {
+      const container = document.getElementById('itinerary-container');
+      container.innerHTML = '';
+
+      appData.forEach((dayData, dayIdx) => {
+        // 天氣預留UI (模擬)
+        const mockWeathers =['☀️ 晴天 22°', '⛅ 多雲 20°', '☁️ 陰天 18°', '🌧️ 陣雨 16°', '☀️ 晴天 23°', '⛅ 多雲 21°', '☀️ 晴天 24°'];
+        const weather = mockWeathers[dayData.day - 1] || '☀️';
+
+        let dayHtml = `
+          <div class="mb-8">
+            <div class="flex justify-between items-end mb-3 border-b-2 border-gray-200 pb-2">
+              <h2 class="text-xl font-bold text-textPrimary">Day ${dayData.day} <span class="text-sm font-normal text-gray-500 ml-2">📍 ${dayData.location}</span></h2>
+              <div class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">${weather}</div>
+            </div>
+            <div class="space-y-3">
+        `;
+
+        dayData.items.forEach((item, itemIdx) => {
+          const style = getTypeStyle(item.type);
+          const smartTags = smartAnalysis(item.name);
+          const googleMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + ' ' + dayData.location)}`;
+          
+          dayHtml += `
+            <div class="bg-white rounded-xl p-3 flex items-start gap-3 card-shadow relative">
+              <div class="${style.bg} ${style.color} w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                <i class="fa-solid ${style.icon}"></i>
+              </div>
+              <div class="flex-grow cursor-pointer" onclick="openEditModal(${dayIdx}, ${itemIdx})">
+                <div class="flex items-center flex-wrap">
+                  <h3 class="font-bold text-base text-gray-800">${item.name}</h3>
+                  ${smartTags}
+                </div>
+                ${item.time ? `<div class="text-xs text-blue-600 mt-1"><i class="fa-regular fa-clock"></i> ${item.time}</div>` : ''}
+                ${item.notes ? `<div class="text-xs text-gray-500 mt-1 bg-gray-50 p-2 rounded border-l-2 border-gray-300">${item.notes}</div>` : '<div class="text-[10px] text-gray-400 mt-1">點擊新增備註/時間...</div>'}
+              </div>
+              <a href="${googleMapUrl}" target="_blank" class="shrink-0 text-gray-400 hover:text-blue-500 p-2 border rounded-full w-8 h-8 flex items-center justify-center">
+                <i class="fa-solid fa-diamond-turn-right"></i>
+              </a>
+            </div>
+          `;
+        });
+
+        dayHtml += `</div></div>`;
+        container.innerHTML += dayHtml;
+      });
+    }
+
+    /* ==========================================
+       4. 互動操作：編輯與新增景點
+       ========================================== */
+    function populateAddDaySelect() {
+      const select = document.getElementById('add-day');
+      select.innerHTML = '';
+      appData.forEach((d, idx) => {
+        select.innerHTML += `<option value="${idx}">Day ${d.day} - ${d.location}</option>`;
+      });
+    }
+
+    function openAddModal() {
+      document.getElementById('add-modal').classList.remove('hidden');
+    }
+
+    function saveNewItem() {
+      const dayIdx = document.getElementById('add-day').value;
+      const type = document.getElementById('add-type').value;
+      const name = document.getElementById('add-name').value.trim();
+
+      if(!name) return alert('請輸入名稱');
+
+      appData[dayIdx].items.push({
+        name: name,
+        type: type,
+        time: '',
+        notes: ''
+      });
+
+      saveData();
+      renderItinerary();
+      closeModals();
+      document.getElementById('add-name').value = '';
+    }
+
+    function openEditModal(dayIdx, itemIdx) {
+      const item = appData[dayIdx].items[itemIdx];
+      document.getElementById('edit-modal-title').innerText = `編輯：${item.name}`;
+      document.getElementById('edit-day-idx').value = dayIdx;
+      document.getElementById('edit-item-idx').value = itemIdx;
+      document.getElementById('edit-time').value = item.time || '';
+      document.getElementById('edit-notes').value = item.notes || '';
+      
+      document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function saveEdit() {
+      const dayIdx = document.getElementById('edit-day-idx').value;
+      const itemIdx = document.getElementById('edit-item-idx').value;
+      
+      appData[dayIdx].items[itemIdx].time = document.getElementById('edit-time').value;
+      appData[dayIdx].items[itemIdx].notes = document.getElementById('edit-notes').value;
+      
+      saveData();
+      renderItinerary();
+      closeModals();
+    }
+
+    function closeModals() {
+      document.getElementById('edit-modal').classList.add('hidden');
+      document.getElementById('add-modal').classList.add('hidden');
+    }
+
+    /* ==========================================
+       5. 工具箱：記帳預算功能
+       ========================================== */
+    function renderExpenses() {
+      const list = document.getElementById('expense-list');
+      list.innerHTML = '';
+      let total = 0;
+
+      expenses.forEach((exp, idx) => {
+        total += Number(exp.amount);
+        list.innerHTML += `
+          <li class="flex justify-between items-center bg-gray-50 p-2 rounded">
+            <span>${exp.item}</span>
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-gray-700">¥${exp.amount.toLocaleString()}</span>
+              <button onclick="deleteExpense(${idx})" class="text-red-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </li>
+        `;
+      });
+
+      document.getElementById('total-expense').innerText = `¥ ${total.toLocaleString()}`;
+    }
+
+    function addExpense() {
+      const item = document.getElementById('expense-item').value.trim();
+      const amount = document.getElementById('expense-amount').value.trim();
+
+      if(!item || !amount) return alert('請完整填寫項目與金額');
+
+      expenses.push({ item, amount: Number(amount) });
+      saveExpenses();
+      renderExpenses();
+
+      document.getElementById('expense-item').value = '';
+      document.getElementById('expense-amount').value = '';
+    }
+
+    function deleteExpense(idx) {
+      expenses.splice(idx, 1);
+      saveExpenses();
+      renderExpenses();
+    }
+
+    /* ==========================================
+       6. 視圖切換 (Tab Navigation)
+       ========================================== */
+    function switchTab(tabId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+      // 更新 Nav 顏色
+      document.querySelectorAll('.nav-btn').forEach(el => {
+        el.classList.remove('text-textPrimary');
+        el.classList.add('text-gray-400');
+        el.querySelector('span').classList.remove('font-bold');
+      });
+      
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      activeNav.classList.remove('text-gray-400');
+      activeNav.classList.add('text-textPrimary');
+      activeNav.querySelector('span').classList.add('font-bold');
+
+      // 控制浮動按鈕顯示
+      const fab = document.getElementById('fab-add');
+      if(tabId === 'itinerary') {
+        fab.classList.remove('hidden');
+      } else {
+        fab.classList.add('hidden');
+      }
+      
+      window.scrollTo(0,0);
+    }
+
+    function openMapApp() {
+      // 開啟 Google Maps 搜尋九州
+      window.open('https://www.google.com/maps/search/?api=1&query=日本九州', '_blank');
+    }
+
+    // 啟動 App
+    window.onload = initApp;
+
+  </script>
+</body>
+</html>
